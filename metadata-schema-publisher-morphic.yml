@@ -1,0 +1,14 @@
+name: metadata-schema-publisher
+stage: dev
+prod-bucket-name: test-morphic-metadata-schema-bkt-prod
+staging-bucket-name: # to be filled out when available
+integration-bucket-name: # to be filled out when available
+dev-bucket-name: test-morphic-metadata-schema-bkt-dev
+notification-event: # to be filled out when available
+sns-topic-name: # to be filled out when available
+secret-name: "test-metadata-schema-publisher/secrets"
+
+main-schema-url: https://schema.morphic.bio/
+dev-schema-url: https://dev.schema.morphic.bio/
+integration-schema-url: # to be filled out when available
+staging-schema-url: # to be filled out when available
