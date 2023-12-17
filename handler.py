@@ -29,11 +29,10 @@ INGEST_API = {
 }
 
 SCHEMA_URL = {
-    'main': 'https://schema.humancellatlas.org/',
-    'develop': 'https://schema.dev.data.humancellatlas.org/',
-    'integration': 'https://schema.integration.data.humancellatlas.org/',
-    'staging': 'https://schema.staging.data.humancellatlas.org/'
-
+    'main': 'MAIN_SCHEMA_URL',
+    'develop': 'DEV_SCHEMA_URL',
+    'integration': 'INTEGRATION_SCHEMA_URL',
+    'staging': 'STAGING_SCHEMA_URL'
 }
 
 UNVERSIONED_FILES = [
@@ -60,24 +59,25 @@ def get_service_jwt(service_credentials, audience):
 
 
 def notify_ingest(branch_name, service_account):
-    if is_dry_run():
-        print('DRY RUN: notify ingest ' + branch_name)
-    else:
-        ingest_base_url = INGEST_API.get(branch_name)
-        schema_update_url = f'{ingest_base_url}/schemas/update'
-
-        audience = DEFAULT_JWT_AUDIENCE
-        if branch_name == 'master':
-            audience = "https://data.humancellatlas.org/"
-
-        if service_account:
-            token = get_service_jwt(service_account, audience)
-            headers = {'Authorization': f'Bearer {token}'}
+    if is_notify_actions_enabled():
+        if is_dry_run():
+            print('DRY RUN: notify ingest ' + branch_name)
         else:
-            headers = {}
-        r = requests.post(schema_update_url, headers=headers)
-        r.raise_for_status()
-    print('Notified Ingest!')
+            ingest_base_url = INGEST_API.get(branch_name)
+            schema_update_url = f'{ingest_base_url}/schemas/update'
+
+            audience = DEFAULT_JWT_AUDIENCE
+            if branch_name == 'master':
+                audience = "https://data.humancellatlas.org/"
+
+            if service_account:
+                token = get_service_jwt(service_account, audience)
+                headers = {'Authorization': f'Bearer {token}'}
+            else:
+                headers = {}
+            r = requests.post(schema_update_url, headers=headers)
+            r.raise_for_status()
+        print('Notified Ingest!')
 
 
 def get_access_token(secrets):
@@ -154,6 +154,10 @@ def is_dry_run():
     return os.getenv('METADATA_SCHEMA_PUBLISHER_DRY_RUN', 'False').lower() in ('y', 'yes', 't', 'true', 'on', '1')
 
 
+def is_notify_actions_enabled():
+    return os.getenv('NOTIFY_ACTIONS', 'true').lower() in ('y', 'yes', 't', 'true', 'on', '1')
+
+
 def _process_event(event):
     message = json.loads(event["body"])
     return message
@@ -208,7 +212,8 @@ def _process_directory(repo, branch_name, base_server_path, server_path, version
 def resolve_schema_base_url(branch_name):
     schema_base_url = os.getenv('METADATA_SCHEMA_PUBLISHER_SCHEMA_BASE_URL')
     if not schema_base_url:
-        schema_base_url = SCHEMA_URL.get(branch_name)
+        schema_base_url_var = SCHEMA_URL.get(branch_name)
+        schema_base_url = os.environ.get(schema_base_url_var)
     if schema_base_url[-1] != '/':
         schema_base_url = schema_base_url + '/'
     return schema_base_url
@@ -258,21 +263,22 @@ def _key_exists(s3, bucket, key):
 
 
 def _send_notification(message, context):
-    if is_dry_run():
-        print("DRY RUN:" + message)
-    else:
-        topic_name = os.environ['TOPIC_NAME']
-        account_id = context.invoked_function_arn.split(":")[4]
-        if account_id != "Fake":
-            print("Sending notification to " + topic_name)
-            topic_arn = "arn:aws:sns:" + os.environ['AWS_REGION'] + ":" + account_id + ":" + topic_name
-            sns = boto3.client(service_name="sns")
-            sns.publish(
-                TopicArn=topic_arn,
-                Message=message
-            )
+    if is_notify_actions_enabled():
+        if is_dry_run():
+            print("DRY RUN:" + message)
         else:
-            print("Skipping notification: " + message)
+            topic_name = os.environ['TOPIC_NAME']
+            account_id = context.invoked_function_arn.split(":")[4]
+            if account_id != "Fake":
+                print("Sending notification to " + topic_name)
+                topic_arn = "arn:aws:sns:" + os.environ['AWS_REGION'] + ":" + account_id + ":" + topic_name
+                sns = boto3.client(service_name="sns")
+                sns.publish(
+                    TopicArn=topic_arn,
+                    Message=message
+                )
+            else:
+                print("Skipping notification: " + message)
 
 
 def sns_to_slack(event, context):
