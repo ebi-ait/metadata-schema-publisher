@@ -1,0 +1,23 @@
+{
+    "last_update_date": "2023-10-18T12:17:16Z",
+    "version_numbers": {
+        "system": {
+            "document": "0.0.1"
+        },
+        "type": {
+            "project": {
+                "study": "0.0.1"
+            },
+            "biomaterial": {
+                "cell_line": "0.0.1",
+                "differentiated_cell_line": "0.0.1",
+                "library_preparation": "0.0.1",
+                "organoid": "0.0.1"
+            },
+            "file": {
+                "analysis_file": "0.0.1",
+                "sequence_file": "0.0.1"
+            }
+        }
+    }
+}
