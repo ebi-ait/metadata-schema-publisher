@@ -1,5 +1,6 @@
 botocore
 PyGithub
 boto3
-requests
+requests==2.28.2
+urllib3<2
 hca-ingest
