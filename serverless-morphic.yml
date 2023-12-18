@@ -17,7 +17,7 @@ custom:
 
 provider:
   name: aws
-  region: us-east-1
+  region: eu-west-2
   stage: ${self:custom.metadata-schema-publisher.stage}
   timeout: 300
   iamRoleStatements:
