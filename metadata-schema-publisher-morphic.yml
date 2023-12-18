@@ -1,9 +1,9 @@
 name: metadata-schema-publisher
 stage: dev
-prod-bucket-name: test-morphic-metadata-schema-bkt-prod
+prod-bucket-name: morphic-metadata-schema-bkt-prod
 staging-bucket-name: # to be filled out when available
 integration-bucket-name: # to be filled out when available
-dev-bucket-name: test-morphic-metadata-schema-bkt-dev
+dev-bucket-name: morphic-metadata-schema-bkt-dev
 notification-event: # to be filled out when available
 sns-topic-name: # to be filled out when available
 secret-name: "test-metadata-schema-publisher/secrets"
