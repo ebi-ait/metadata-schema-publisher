@@ -64,9 +64,17 @@ docker-compose up -d
 docker exec -it deployment_deployment_1 /bin/bash
 ```
 5. Inside the container run, go to the publisher directory and run the deploy command
+
+- To deploy the default serverless.yml file (HCA)
 ```
 $ cd code/metadata-schema-publisher/
 $ serverless deploy -v
+```
+
+- To deploy for MorPhiC
+```
+$ cd code/metadata-schema-publisher/
+$ serverless deploy -v --config serverless-morphic.yml
 ```
 
 ## AWS Permissions
