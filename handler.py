@@ -1,4 +1,5 @@
 import base64
+import collections.abc
 import json
 import os
 from functools import cache
@@ -158,6 +159,10 @@ def is_notify_actions_enabled():
     return os.getenv('NOTIFY_ACTIONS', 'true').lower() in ('y', 'yes', 't', 'true', 'on', '1')
 
 
+def is_solve_allof_enabled():
+    return os.getenv('SOLVE_ALLOF', 'false').lower() in ('y', 'yes', 't', 'true', 'on', '1')
+
+
 def _process_event(event):
     message = json.loads(event["body"])
     return message
@@ -170,7 +175,8 @@ def _process_directory(repo, branch_name, base_server_path, server_path, version
     contents = repo.get_dir_contents(server_path, branch_name)
     for content in contents:
         if content.type == 'dir':
-            results, errors = _process_directory(repo, branch_name, base_server_path, content.path, version_map, context)
+            results, errors = _process_directory(repo, branch_name, base_server_path, content.path, version_map,
+                                                 context)
             created_list.extend(results)
             error_list.extend(errors)
         else:
@@ -184,6 +190,10 @@ def _process_directory(repo, branch_name, base_server_path, server_path, version
                     file_content = repo.get_contents(path, branch_name)
                     data = base64.b64decode(file_content.content)
                     json_data = json.loads(data.decode('utf8'))
+
+                    if is_solve_allof_enabled():
+                        json_data = solve_allof(repo, path, branch_name, base_server_path, json_data)
+
                     relative_path = path.replace(base_server_path + "/", "")
                     relative_path = relative_path.replace(".json", "")
                     key = None
@@ -207,6 +217,33 @@ def _process_directory(repo, branch_name, base_server_path, server_path, version
                 error_list.append({'path': 'content.path', 'error': str(e)})
                 print('Error processing %s: %s', content.path, e)
     return created_list, error_list
+
+
+def update(d, u):
+    for k, v in u.items():
+        if isinstance(v, collections.abc.Mapping):
+            d[k] = update(d.get(k, {}), v)
+        else:
+            d[k] = v
+    return d
+
+
+def solve_allof(repo, path_processing, branch_name, base_server_path, schema):
+    if 'allOf' in schema:
+        print(f"- solving 'allOf' property in : {path_processing}")
+        allOf = schema['allOf']
+        for subschema in allOf:
+            if "$ref" not in subschema:
+                continue
+            path = f"{base_server_path}/system/document.json"
+            file_content = repo.get_contents(path, branch_name)
+            system = json.loads(file_content.decoded_content.decode('utf-8'))
+            subschema = update(subschema, system)
+        schema['allOf'][0] = subschema
+        # Delete redundant info
+        del schema['allOf'][0]['$ref']
+        del schema['allOf'][0]['$schema']
+    return schema
 
 
 def resolve_schema_base_url(branch_name):
