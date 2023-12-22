@@ -111,3 +111,16 @@ Alternatively, create a new access token for that user and set it up in your cre
 | notification-event |                                                   | notification |
 | sns-topic-name |                                                   | metadata-schema-publisher-notification-prod |
 | secret-name | name of aws secret that contains the github token | metadata-schema-publisher/secrets |
+
+### Schema environments for MorPhiC
+
+1. The file [./metadata-schema-publisher-morphic.yml](./metadata-schema-publisher-morphic.yml) defines the environment parameters used by the functions:
+
+
+| var name         | description                                       | example value                               |
+|------------------|---------------------------------------------------|---------------------------------------------|
+| name             | service name                                      | metadata-schema-publisher                   |
+| stage            | deployment satage                                 | prod                                        |
+| prod-bucket-name | name of bucket to which prod files are copied   | morphic-metadata-schema-bkt-prod            |
+| dev-bucket-name |                                                   | morphic-metadata-schema-bkt-dev             |
+| secret-name | name of aws secret that contains the github token | metadata-schema-publisher/secrets           |
