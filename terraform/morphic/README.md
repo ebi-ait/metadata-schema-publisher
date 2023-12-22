@@ -19,6 +19,13 @@ staging|(temporary)schema.staging.data.humancellatlas.org|data.humancellatlas.or
 dev|(temporary)schema.dev.data.humancellatlas.org|data.humancellatlas.org| HCA DCP Data Portal/Azul Team - same instruction as above
 integration| (temporary) schema.integration.archive.data.humancellatlas.org|archive.data.humancellatlas.org|Ingest devs own this parent domain. No need to point the name servers. 
 
+### MorPhiC
+Environment| Domain                                        | Parent Domain           |Owner
+--- |-----------------------------------------------|-------------------------| --- 
+prod| schema.morphic.bio                            | morphic.bio             | Domain management is performed on the dev AWS MorPhiC account through Route53 service
+dev| dev.schema.morphic.bio | morphic.bio | 
+
+
 ## To do
 1. Add tags to AWS resources
 
@@ -27,6 +34,10 @@ integration| (temporary) schema.integration.archive.data.humancellatlas.org|arch
     ```
     cd terraform
     ```
+   or for MorPhiC
+   ```
+   cd terraform/morphic
+   ```
 1. Initialize working directory
     ```
     source init.sh integration # or dev, staging, prod
