@@ -1,9 +1,9 @@
 # Metadata Schema Publisher
 
-Automatically publishes metadata schemas to [schema.humacellatlas.org](https://schema.humancellatlas.org) when changes are made to the [GitHub repo](https://github.com/HumanCellAtlas/metadata-schema).
+Automatically publishes metadata schemas to [schema.morphic.bio](https://schema.morphic.bio) when changes are made to the [GitHub repo](https://github.com/morphic-bio/metadata-schema).
 
 ## Architecture
-![Architecture of schema.humancellatlas.org metadata publisher](schema.humancellatlas.org.png)
+![Architecture of schema.morphic.bio metadata publisher](schema.morphic.bio.png)
 
 ## Setup
 
@@ -40,6 +40,8 @@ If you are not using the default aws profile, add the `--aws-profile profile-nam
 4. add enironment variables:
    * `METADATA_SCHEMA_PUBLISHER_DRY_RUN` - set to true for dry run (no s3 writing, no sns publish, no ingest notification)
    * `METADATA_SCHEMA_PUBLISHER_SCHEMA_BASE_URL` - set to host name of publishing server
+   * `NOTIFY_ACTIONS: false` - flag to activate/deactivate notifications based on whether this is required. Currently, this is set to `false` by default as notifications are not yet available for MorPhiC.
+   * `SOLVE_ALLOF: true` - set by default to `true` to solve `allOf` property for `type` MorPhiC schemas
 
 ## Invoke on AWS
 ```
@@ -68,13 +70,7 @@ docker exec -it deployment_deployment_1 /bin/bash
 - To deploy the default serverless.yml file (HCA)
 ```
 $ cd code/metadata-schema-publisher/
-$ serverless deploy -v
-```
-
-- To deploy for MorPhiC
-```
-$ cd code/metadata-schema-publisher/
-$ serverless deploy -v --config serverless-morphic.yml
+$ serverless deploy -v --config serverless.yml
 ```
 
 ## AWS Permissions
@@ -84,7 +80,7 @@ Alternatively, create a new access token for that user and set it up in your cre
 ## Current Deployment
 
 [metadata-schema-publisher-prod-onGithubPush](https://console.aws.amazon.com/lambda/home?region=us-east-1#/functions/metadata-schema-publisher-prod-onGithubPush?tab=graph)
-`
+
 
 ### Logic
 
@@ -96,31 +92,18 @@ Alternatively, create a new access token for that user and set it up in your cre
 
 ## Setting up new schema environments
 
-1. See notes: https://docs.google.com/document/d/1FQo9ofrFTSqLKx2a6eCHqTIpJxhAtShlCVkx6j6yA6s/edit
-2. add github access secret to aws secret manager
+1. First, set up an S3 bucket with a CloudFront distribution to store and make the schemas accessible on the web. If the project has its own domain, connect it to DNS. For MorPhiC, these steps are primarily accomplished using Terraform scripts. Refer to the relevant README file in terraform/morphic for more details.
+2. Add github access secret to aws secret manager
 3. The file [./metadata-schema-publisher.yml](./metadata-schema-publisher.yml) defines the environment parameters used by the functions:
 
-| var name         | description                                       | example value             |
-|------------------|---------------------------------------------------|---------------------------|
-| name             | service name                                      | metadata-schema-publisher |
-| stage            | deployment satage                                 | prod                      |
-| prod-bucket-name | name of bucket to which prod files are copied   |  schema.humancellatlas.org |
-| staging-bucket-name |                                                   | schema.staging.data.humancellatlas.org |
-| integration-bucket-name |                                                   | schema.integration.data.humancellatlas.org |
-| dev-bucket-name |                                                   | schema.dev.data.humancellatlas.org |
-| notification-event |                                                   | notification |
-| sns-topic-name |                                                   | metadata-schema-publisher-notification-prod |
-| secret-name | name of aws secret that contains the github token | metadata-schema-publisher/secrets |
-
-### Schema environments for MorPhiC
-
-1. The file [./metadata-schema-publisher-morphic.yml](./metadata-schema-publisher-morphic.yml) defines the environment parameters used by the functions:
-
-
-| var name         | description                                       | example value                               |
-|------------------|---------------------------------------------------|---------------------------------------------|
-| name             | service name                                      | metadata-schema-publisher                   |
-| stage            | deployment satage                                 | prod                                        |
-| prod-bucket-name | name of bucket to which prod files are copied   | morphic-metadata-schema-bkt-prod            |
-| dev-bucket-name |                                                   | morphic-metadata-schema-bkt-dev             |
-| secret-name | name of aws secret that contains the github token | metadata-schema-publisher/secrets           |
+| var name         | description                                                                                | example value                     |
+|------------------|--------------------------------------------------------------------------------------------|-----------------------------------|
+| name             | service name                                                                               | metadata-schema-publisher         |
+| stage            | deployment stage                                                                           | prod                              |
+| project          | project name                                                                               | morphic                           |
+| prod-bucket-name | name of bucket to which prod files are copied                                              | morphic-metadata-schema-bkt-prod  |
+| dev-bucket-name  |                                                                                            | morphic-metadata-schema-bkt-dev   |
+| secret-name      | name of aws secret that contains the github token                                          | metadata-schema-publisher/secrets |
+| main-schema-url  | URL of the metadata schema store where production files are publicly accessible on the web | https://schema.morphic.bio/       |
+| dev-schema-url   |                                                                                            | https://dev.schema.morphic.bio/   |
+| jwt-audience-target-branch   | branch name to specify audience for notifications after an update (currently unused)       | main                              |
