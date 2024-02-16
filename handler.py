@@ -13,8 +13,6 @@ from github import Github, GithubException
 
 from metadata_schema import MetadataSchema, get_relative_url, MetadataSchemaError
 
-BRANCH_REFS = ['refs/heads/main', 'refs/heads/staging', 'refs/heads/integration', 'refs/heads/develop']
-
 BRANCH_CONFIG = {
     'develop': 'DEV_BUCKET',
     'integration': 'INTEGRATION_BUCKET',
@@ -23,10 +21,10 @@ BRANCH_CONFIG = {
 }
 
 INGEST_API = {
-    'develop': 'https://api.ingest.dev.archive.data.humancellatlas.org',
-    'integration': 'https://api.ingest.integration.archive.data.humancellatlas.org',
-    'staging': 'https://api.ingest.staging.archive.data.humancellatlas.org',
-    'main': 'https://api.ingest.archive.data.humancellatlas.org'
+    'develop': 'DEV_INGEST_API',
+    'integration': 'INTEGRATION_INGEST_API',
+    'staging': 'STAGING_INGEST_API',
+    'main': 'MAIN_INGEST_API'
 }
 
 SCHEMA_URL = {
@@ -36,11 +34,14 @@ SCHEMA_URL = {
     'staging': 'STAGING_SCHEMA_URL'
 }
 
-UNVERSIONED_FILES = [
-    'property_migrations'
-]
+PROJECT_IDENTIFIER = os.getenv('PROJECT_IDENTIFIER_CONFIG')
+BRANCH_REFS = os.getenv('BRANCH_REFS_CONFIG', '').split(',')
 
-DEFAULT_JWT_AUDIENCE = 'https://dev.data.humancellatlas.org/'
+UNVERSIONED_FILES = os.getenv('UNVERSIONED_FILES_CONFIG', '').split(',')
+
+DEFAULT_JWT_AUDIENCE = os.getenv('DEFAULT_JWT_AUDIENCE_CONFIG')
+
+JWT_AUDIENCE_TARGET_BRANCH = os.getenv('JWT_AUDIENCE_TARGET_BRANCH_CONFIG')
 
 
 def get_service_jwt(service_credentials, audience):
@@ -68,7 +69,7 @@ def notify_ingest(branch_name, service_account):
             schema_update_url = f'{ingest_base_url}/schemas/update'
 
             audience = DEFAULT_JWT_AUDIENCE
-            if branch_name == 'master':
+            if branch_name == JWT_AUDIENCE_TARGET_BRANCH:
                 audience = "https://data.humancellatlas.org/"
 
             if service_account:
@@ -78,7 +79,8 @@ def notify_ingest(branch_name, service_account):
                 headers = {}
             r = requests.post(schema_update_url, headers=headers)
             r.raise_for_status()
-        print('Notified Ingest!')
+        print(f'[{PROJECT_IDENTIFIER}] Notified Ingest for branch {branch_name} '
+              f'- Schema Update URL: {schema_update_url}')
 
 
 def get_access_token(secrets):
@@ -106,7 +108,9 @@ def on_github_push(event, context):
     access_token = get_access_token(secrets)
     service_account = get_service_account(secrets)
 
+    print(f'Executing for Project: {PROJECT_IDENTIFIER}')
     if ref in BRANCH_REFS:
+        print(f'Processing branch: {ref}')
         repo_name = message["repository"]["full_name"]
         repo = Github(access_token).get_repo(repo_name)
         branch = repo.get_branch(ref)
@@ -169,7 +173,7 @@ def _process_event(event):
 
 
 def _process_directory(repo, branch_name, base_server_path, server_path, version_map, context):
-    print("Processing " + server_path + " in " + branch_name + " branch of " + repo.name)
+    print(f'[{PROJECT_IDENTIFIER}] Processing {server_path} in {branch_name} branch of {repo.name}')
     created_list = []
     error_list = []
     contents = repo.get_dir_contents(server_path, branch_name)
@@ -215,7 +219,7 @@ def _process_directory(repo, branch_name, base_server_path, server_path, version
 
             except(GithubException, IOError, JSONDecodeError, MetadataSchemaError) as e:
                 error_list.append({'path': 'content.path', 'error': str(e)})
-                print('Error processing %s: %s', content.path, e)
+                print(f'Error processing {content.path} in branch {branch_name}: {e}')
     return created_list, error_list
 
 
@@ -230,19 +234,24 @@ def update(d, u):
 
 def solve_allof(repo, path_processing, branch_name, base_server_path, schema):
     if 'allOf' in schema:
-        print(f"- solving 'allOf' property in : {path_processing}")
+        print(f"[{PROJECT_IDENTIFIER}] - Solving 'allOf' property in {path_processing} for branch {branch_name}")
         allOf = schema['allOf']
         for subschema in allOf:
             if "$ref" not in subschema:
                 continue
-            path = f"{base_server_path}/system/document.json"
-            file_content = repo.get_contents(path, branch_name)
-            system = json.loads(file_content.decoded_content.decode('utf-8'))
-            subschema = update(subschema, system)
+            try:
+                path = f"{base_server_path}/system/document.json"
+                file_content = repo.get_contents(path, branch_name)
+                system = json.loads(file_content.decoded_content.decode('utf-8'))
+                subschema = update(subschema, system)
+            except Exception as e:
+                print(f"Error resolving '$ref' in {path_processing} for branch {branch_name}: {e}")
+
         schema['allOf'][0] = subschema
         # Delete redundant info
-        del schema['allOf'][0]['$ref']
-        del schema['allOf'][0]['$schema']
+        if subschema:
+            del subschema['$ref']
+            del subschema['$schema']
     return schema
 
 
@@ -316,6 +325,8 @@ def _send_notification(message, context):
                 )
             else:
                 print("Skipping notification: " + message)
+    else:
+        print(f'Notifications are disabled - Message: {message}')
 
 
 def sns_to_slack(event, context):
