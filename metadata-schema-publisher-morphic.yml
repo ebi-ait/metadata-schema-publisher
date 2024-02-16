@@ -1,8 +1,0 @@
-name: metadata-schema-publisher
-stage: dev
-prod-bucket-name: morphic-metadata-schema-bkt-prod
-dev-bucket-name: morphic-metadata-schema-bkt-dev
-secret-name: "metadata-schema-publisher/secrets"
-
-main-schema-url: https://schema.morphic.bio/
-dev-schema-url: https://dev.schema.morphic.bio/
