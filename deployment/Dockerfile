@@ -26,10 +26,5 @@ VOLUME /code
 ENV AWS_PROFILE=default
 ENV AWS_DEFAULT_REGION=us-east-1
 
-# CMD to run your Lambda function
-#ENTRYPOINT ["/opt/aws_setup && tail -f /dev/null"]
-#CMD ["handler.on_github_push"]
-#CMD /opt/aws_setup && tail -f /dev/null
-
 ENTRYPOINT ["/opt/aws_setup"]
 CMD ["tail", "-f", "/dev/null"]
