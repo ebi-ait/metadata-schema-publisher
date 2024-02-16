@@ -1,14 +1,12 @@
 name: metadata-schema-publisher
 stage: prod
-prod-bucket-name: schema-humancellatlas-org
-staging-bucket-name: staging-schema-humancellatlas-org
-integration-bucket-name: integration-schema-humancellatlas-org
-dev-bucket-name: dev-schema-humancellatlas-org
-notification-event: notification
-sns-topic-name: metadata-schema-publisher-notification-prod
+project: morphic
+
+prod-bucket-name: morphic-metadata-schema-bkt-prod
+dev-bucket-name: morphic-metadata-schema-bkt-dev
 secret-name: "metadata-schema-publisher/secrets"
 
-main-schema-url: https://schema.humancellatlas.org/
-dev-schema-url: https://schema.dev.data.humancellatlas.org/
-integration-schema-url: https://schema.integration.data.humancellatlas.org/
-staging-schema-url: https://schema.staging.data.humancellatlas.org/
+main-schema-url: https://schema.morphic.bio/
+dev-schema-url: https://dev.schema.morphic.bio/
+
+jwt-audience-target-branch: main
