@@ -9,20 +9,11 @@
     Terraform v0.14.6
     + provider registry.terraform.io/hashicorp/aws v3.31.0
     ```
-2. The route53 hosted zones should be pre-created and their name servers should be configured by the owner team of the parent domain.
+2. The route53 hosted zones should be pre-created and their name servers should be configured by the owner team of the parent domain. The steps for setting up subdomains for MorPhiC are enumerated [here](https://docs.google.com/document/d/1_L-c_PLWq-3DBGu_fjpN27RIo_WCbBJUKRvofzomv70/edit#heading=h.7gaksfkvzyjd).
 
-
-Environment|Domain|Parent Domain|Owner
---- | --- | --- | --- 
-prod|schema.humancellatlas.org|humancellatlas.org| Sanger - Send an email to `Servicedesk@sanger.ac.uk` mailing list and mark message subject with `[FAO core IMT]` <br/> Please ask Laura Clarke, laura@ebi.ac.uk for details.
-staging|(temporary)schema.staging.data.humancellatlas.org|data.humancellatlas.org| HCA DCP Data Portal/Azul Team - Send a message on HCA Slack Workspace to `hannes@ucsc.edu` as he's the one who's been doing it in the past.
-dev|(temporary)schema.dev.data.humancellatlas.org|data.humancellatlas.org| HCA DCP Data Portal/Azul Team - same instruction as above
-integration| (temporary) schema.integration.archive.data.humancellatlas.org|archive.data.humancellatlas.org|Ingest devs own this parent domain. No need to point the name servers. 
-
-### MorPhiC
 Environment| Domain                                        | Parent Domain           |Owner
 --- |-----------------------------------------------|-------------------------| --- 
-prod| schema.morphic.bio                            | morphic.bio             | Domain management is performed on the dev AWS MorPhiC account through Route53 service
+prod| schema.morphic.bio                            | morphic.bio             | Domain management is performed on the `dev` AWS MorPhiC account through the Route53 service
 dev| dev.schema.morphic.bio | morphic.bio | 
 
 
@@ -30,11 +21,7 @@ dev| dev.schema.morphic.bio | morphic.bio |
 1. Add tags to AWS resources
 
 ## Create or update the schema instance
-1. Go to directory containing Terraform configuration files
-    ```
-    cd terraform
-    ```
-   or for MorPhiC
+1. Go to directory containing Terraform configuration files for MorPhiC
    ```
    cd terraform/morphic
    ```
