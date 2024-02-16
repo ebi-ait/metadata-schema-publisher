@@ -7,9 +7,8 @@ plugins:
   - serverless-python-requirements
 custom:
   metadata-schema-publisher: ${file(metadata-schema-publisher.yml)}
-  snsTopicName: ${self:custom.metadata-schema-publisher.name}-${self:custom.metadata-schema-publisher.notification-event}-${self:custom.metadata-schema-publisher.stage}
   client:
-    bucketName: ${self:custom.metadata-schema-publisher.prod-bucket-name}
+    bucketName: ${self:custom.metadata-schema-publisher.dev-bucket-name}
     distributionFolder: client
 
 provider:
@@ -29,22 +28,6 @@ provider:
     - Effect: Allow
       Action:
         - s3:ListBucket
-      Resource: "arn:aws:s3:::${self:custom.metadata-schema-publisher.staging-bucket-name}"
-    - Effect: Allow
-      Action:
-        - s3:PutObject
-      Resource: "arn:aws:s3:::${self:custom.metadata-schema-publisher.staging-bucket-name}/*"
-    - Effect: Allow
-      Action:
-        - s3:ListBucket
-      Resource: "arn:aws:s3:::${self:custom.metadata-schema-publisher.integration-bucket-name}"
-    - Effect: Allow
-      Action:
-        - s3:PutObject
-      Resource: "arn:aws:s3:::${self:custom.metadata-schema-publisher.integration-bucket-name}/*"
-    - Effect: Allow
-      Action:
-        - s3:ListBucket
       Resource: "arn:aws:s3:::${self:custom.metadata-schema-publisher.dev-bucket-name}"
     - Effect: Allow
       Action:
@@ -54,52 +37,36 @@ provider:
       Action:
         - secretsmanager:GetSecretValue
       Resource: "arn:aws:secretsmanager:*:*:secret:${self:custom.metadata-schema-publisher.secret-name}-??????"
-    - Effect: Allow
-      Action:
-        - SNS:Publish
-      Resource: "arn:aws:sns:*:*:${self:custom.metadata-schema-publisher.sns-topic-name}"
 
 functions:
   onGithubPush:
     runtime: python3.10
     handler: handler.on_github_push
     environment:
+      PROJECT_IDENTIFIER_CONFIG: ${self:custom.metadata-schema-publisher.project}
+      # BRANCH_REFS_CONFIG and UNVERSIONED_FILES_CONFIG represents a list of branches separated by commas.
+      # Due to limitations in environment variables, we represent the list as a single string.
+      # Please ensure that branches are specified without spaces.
+      BRANCH_REFS_CONFIG: "refs/heads/main,refs/heads/staging,refs/heads/integration,refs/heads/develop"
+
       PROD_BUCKET: ${self:custom.metadata-schema-publisher.prod-bucket-name}
-      STAGING_BUCKET: ${self:custom.metadata-schema-publisher.staging-bucket-name}
-      INTEGRATION_BUCKET: ${self:custom.metadata-schema-publisher.integration-bucket-name}
       DEV_BUCKET: ${self:custom.metadata-schema-publisher.dev-bucket-name}
-      TOPIC_NAME: ${self:custom.metadata-schema-publisher.sns-topic-name}
+
+      MAIN_SCHEMA_URL: ${self:custom.metadata-schema-publisher.main-schema-url}
+      DEV_SCHEMA_URL: ${self:custom.metadata-schema-publisher.dev-schema-url}
+
+      UNVERSIONED_FILES_CONFIG: "property_migrations"
+      JWT_AUDIENCE_TARGET_BRANCH_CONFIG: ${self:custom.metadata-schema-publisher.jwt-audience-target-branch}
+
       AWS_PROVIDER_REGION: ${self:provider.region}
       SECRET_NAME: ${self:custom.metadata-schema-publisher.secret-name}
+
+      NOTIFY_ACTIONS: false
+      SOLVE_ALLOF: true
     events:
       - http:
           path: github/push
           method: post
-  snsToSlack:
-    runtime: python3.10
-    handler: handler.sns_to_slack
-    environment:
-      AWS_PROVIDER_REGION: ${self:provider.region}
-      SECRET_NAME: ${self:custom.metadata-schema-publisher.secret-name}
-    events:
-      - sns:
-          arn:
-            Fn::Join:
-              - ""
-              - - "arn:aws:sns:"
-                - Ref: "AWS::Region"
-                - ":"
-                - Ref: "AWS::AccountId"
-                - ":"
-                - ${self:custom.snsTopicName}
-          topicName: ${self:custom.snsTopicName}
-
-resources:
-  Resources:
-    Notification:
-      Type: AWS::SNS::Topic
-      Properties:
-        TopicName: ${self:custom.snsTopicName}
 
 package:
   exclude:
