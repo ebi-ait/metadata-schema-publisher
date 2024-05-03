@@ -1,5 +1,7 @@
 import os
 from unittest import TestCase
+from unittest.mock import patch
+
 import pytest
 from assertpy import assert_that
 
@@ -101,3 +103,30 @@ def test_update_refs_urls__returns_json_with_updated_refs__when_all_ref_versions
 
     # then
     assert_that(schema).is_equal_to(expected_updated_schema)
+
+
+@pytest.mark.parametrize("project_identifier,expected_version,expected_insertion", [
+    ("morphic", "0.0.3", 1),
+    ("default", "0.0.3", -1),
+])
+def test_get_relative_url_inserts_version_correctly(project_identifier, expected_version, expected_insertion,
+                                                    version_map):
+    # given
+    schema_path = 'type/project/study'
+
+    # when
+    with patch.dict('os.environ', {'PROJECT_IDENTIFIER_CONFIG': project_identifier}):
+        with patch('metadata_schema.get_version', return_value=expected_version) as mock_get_version:
+            url = get_relative_url(schema_path, version_map)
+
+    elements = url.split('/')
+    version_index = elements.index(expected_version)
+
+    # then
+    if expected_insertion == -1:
+        expected_index = len(elements) - 2  # Since version is inserted before the last element
+    else:
+        expected_index = expected_insertion
+
+    assert version_index == expected_index, f"Version inserted at index {version_index}, expected {expected_index}"
+    mock_get_version.assert_called_once_with(schema_path, version_map)

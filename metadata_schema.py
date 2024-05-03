@@ -1,9 +1,11 @@
+import os
 import traceback
 
 from dict_util import ImmutableDict, find_values_with_key
 
 
 class MetadataSchema:
+    PROJECT_IDENTIFIER = os.getenv('PROJECT_IDENTIFIER_CONFIG')
     def __init__(self, raw_json: dict, schema_path: str):
         self.raw_json = raw_json
         self.schema_path = schema_path
@@ -78,10 +80,18 @@ def generate_id(schema_path, schema_base_url, version_map):
 
 
 def get_relative_url(schema_path, version_map) -> str:
+    project_identifier = os.getenv('PROJECT_IDENTIFIER_CONFIG')
     version = get_version(schema_path, version_map)
     print(f'schema_path: {schema_path}')
     el = schema_path.split("/")
-    el.insert(len(el) - 1, version)
+    if project_identifier == "morphic":
+        insert_position = 1
+        print(f"Inserting version '{version}' after the first element for project '{project_identifier}'.")
+    else:
+        insert_position = len(el) - 1
+        print(f"Inserting version '{version}' before the last element for project '{project_identifier}'.")
+
+    el.insert(insert_position, version)
     return "/".join(el)
 
 
