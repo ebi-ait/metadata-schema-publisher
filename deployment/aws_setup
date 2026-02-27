@@ -1,3 +1,8 @@
 #!/usr/bin/env bash
 
 cp -r /aws/host /root/.aws
+
+# The 'exec "$@"' command is used to execute the CMD specified
+# in the Dockerfile. In this case, it executes 'tail -f /dev/null'.
+# This is essential for keeping the container running in the background.
+exec "$@"

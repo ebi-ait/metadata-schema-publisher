@@ -1,24 +1,29 @@
+import os
 import traceback
 
 from dict_util import ImmutableDict, find_values_with_key
 
 
 class MetadataSchema:
+    PROJECT_IDENTIFIER = os.getenv('PROJECT_IDENTIFIER_CONFIG')
     def __init__(self, raw_json: dict, schema_path: str):
         self.raw_json = raw_json
         self.schema_path = schema_path
         self.json = raw_json
 
     def get_json_schema(self, version_map: dict, schema_base_url: str):
-        self.insert_id_url(version_map, schema_base_url)
-        self.update_refs_urls(version_map, schema_base_url)
+        self.json = self.insert_id_url(version_map, schema_base_url)
+        self.json = self.update_refs_urls(version_map, schema_base_url)
         return self.json
 
     def insert_id_url(self, version_map, schema_base_url):
         id = generate_id(self.schema_path, schema_base_url, version_map)
         id_key = self.get_id_key()
         id_obj = {id_key: id}
-        json_schema = ImmutableDict(self.raw_json).insert_obj_at(id_obj, 1)
+        print(f'id_obj: {id_obj}')
+        self.raw_json.update(id_obj)
+        json_schema = self.raw_json
+        print(f'id after update: {json_schema[id_key]}')
         return json_schema
 
     def update_refs_urls(self, version_map, schema_base_url) -> dict:
@@ -70,13 +75,23 @@ def get_version(schema_path: str, version_map: dict) -> str:
 
 def generate_id(schema_path, schema_base_url, version_map):
     id_url = schema_base_url + get_relative_url(schema_path, version_map)
+    print(f'id_url: {id_url}')
     return id_url
 
 
 def get_relative_url(schema_path, version_map) -> str:
+    project_identifier = os.getenv('PROJECT_IDENTIFIER_CONFIG')
     version = get_version(schema_path, version_map)
+    print(f'schema_path: {schema_path}')
     el = schema_path.split("/")
-    el.insert(len(el) - 1, version)
+    if project_identifier == "morphic":
+        insert_position = 1
+        print(f"Inserting version '{version}' after the first element for project '{project_identifier}'.")
+    else:
+        insert_position = len(el) - 1
+        print(f"Inserting version '{version}' before the last element for project '{project_identifier}'.")
+
+    el.insert(insert_position, version)
     return "/".join(el)
 
 
